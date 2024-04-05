@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Manifest Include="MileXamlBlankApp.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
+    <ClCompile Include="WinMain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="ImageFile.h">
+      <Filter>Helper\ImageFile</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="PropertySheet.props" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="MainPage.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Helper">
+      <UniqueIdentifier>{9fe1d771-27c4-4f82-86d5-f43a36e6991f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Helper\ImageFile">
+      <UniqueIdentifier>{323ff04b-91df-431c-9eaf-6318b34490b1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

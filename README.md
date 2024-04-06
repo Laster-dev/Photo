@@ -18,7 +18,7 @@
 
 ## Objective
 
-We're striving to create a UWP Mail client for Windows.
+We're striving to create a C++ Photo Viewer for Windows.
 
 ![image](https://github.com/MicaApps/Photo/assets/6630660/d2305480-fdf5-4755-91e2-a4c24ab978b6)
 

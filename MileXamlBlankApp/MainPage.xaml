@@ -6,30 +6,37 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   mc:Ignorable="d"
   Loaded="Page_Loaded">
-  <NavigationView
-    x:Name="NavView"
-    AlwaysShowHeader="True"
-    ExpandedModeThresholdWidth="9999999"
-    IsBackButtonVisible="Collapsed"
-    IsBackEnabled="True"
-    IsSettingsVisible="False"
-    OpenPaneLength="400"
-    PaneDisplayMode="Top"
-    BackgroundSizing="OuterBorderEdge"
-    >
-    <NavigationView.PaneCustomContent>
-      <CommandBar>
+  <Grid>
+
+    <Grid.RowDefinitions>
+      <RowDefinition Height="AUTO"/>
+      <RowDefinition Height="*"/>
+    </Grid.RowDefinitions>
+
+
+    <Grid Grid.Row="1">
+      <TextBlock Text="请选择一张图片" Height="50" Width="300" FontSize="40" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF615757"/>
+      <Image x:Name="MainImage" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform">
+        <Image.RenderTransform>
+          <RotateTransform x:Name="ImageTransform" />
+        </Image.RenderTransform>
+      </Image>
+    </Grid>
+
+    <Grid Grid.Row="0">
+
+      <CommandBar  VerticalAlignment="Top" HorizontalAlignment="Center" >
 
         <CommandBar.PrimaryCommands>
           <AppBarButton Icon="AllApps" Width="48" Height="60"/>
 
-          <AppBarButton Icon="OpenLocal" Width="48" Height="60"/>
-          
+          <AppBarButton Icon="OpenLocal" Width="48" Height="60" Click="OpenButton_Click"/>
+
           <AppBarButton Icon="Edit" Width="48" Height="60"/>
 
-          <AppBarButton Icon="Rotate" Width="48" Height="60"/>
+          <AppBarButton Icon="Rotate" Width="48" Height="60" Click="RotateButton_Click"/>
 
-          <AppBarButton Icon="Delete" Width="48" Height="60"/>
+          <AppBarButton Icon="Delete" Width="48" Height="60" Click="DelButton_Click"/>
 
           <AppBarButton Icon="Print" Width="48" Height="60"/>
 
@@ -44,17 +51,14 @@
               <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE712;" FontSize="20"/>
             </AppBarButton.Icon>
           </AppBarButton>
-          <AppBarButton Icon="ZoomIn" Width="48" Height="60"/>
+          <AppBarButton Icon="ZoomIn" Width="48" Height="60" Click="ZoomIn_Click"/>
           <AppBarButton Icon="ZoomOut" Width="48" Height="60"/>
           <AppBarButton Icon="FullScreen" Width="48" Height="60"/>
           <AppBarButton Icon="Setting" Width="48" Height="60"/>
         </CommandBar.PrimaryCommands>
       </CommandBar>
-    </NavigationView.PaneCustomContent>
 
-
-    <Grid>
-      <Image x:Name="MainImage"/>
     </Grid>
-  </NavigationView>
+  </Grid>
+ 
 </Page>

@@ -17,13 +17,14 @@
     PaneDisplayMode="Top"
     BackgroundSizing="OuterBorderEdge"
     >
-    
     <NavigationView.PaneCustomContent>
       <CommandBar>
 
         <CommandBar.PrimaryCommands>
           <AppBarButton Icon="AllApps" Width="48" Height="60"/>
 
+          <AppBarButton Icon="OpenLocal" Width="48" Height="60"/>
+          
           <AppBarButton Icon="Edit" Width="48" Height="60"/>
 
           <AppBarButton Icon="Rotate" Width="48" Height="60"/>

@@ -11,6 +11,7 @@
     <Grid.RowDefinitions>
       <RowDefinition Height="AUTO"/>
       <RowDefinition Height="*"/>
+      <RowDefinition Height="AUTO"/>
     </Grid.RowDefinitions>
 
 
@@ -29,15 +30,17 @@
           0.5,0.5
         </Image.RenderTransformOrigin>
       </Image>
-
-
     </Grid>
+    <Grid Grid.Row="2" Background="#33000000">
 
-    <Grid Grid.Row="0">
+      <TextBlock x:Name="ZoomTextBlock" Text="缩放级别：100%" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="25"/>
+    </Grid>
+    <Grid Grid.Row="0" Background="#33000000">
 
       <CommandBar  VerticalAlignment="Top" HorizontalAlignment="Center" >
 
         <CommandBar.PrimaryCommands>
+          
           <AppBarButton Icon="AllApps" Width="48" Height="60"/>
 
           <AppBarButton Icon="OpenLocal" Width="48" Height="60" Click="OpenButton_Click"/>
@@ -66,6 +69,7 @@
           <AppBarButton Icon="FullScreen" Width="48" Height="60"/>
           <AppBarButton Icon="Setting" Width="48" Height="60"/>
         </CommandBar.PrimaryCommands>
+        
       </CommandBar>
 
     </Grid>

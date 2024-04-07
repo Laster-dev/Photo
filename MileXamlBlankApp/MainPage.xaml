@@ -15,8 +15,16 @@
     </Grid.RowDefinitions>
 
 
-    <Grid Grid.Row="1" x:Name="ImageGrid" SizeChanged="ImageGrid_SizeChanged" >
-      <TextBlock x:Name="HelpTextBlock" Text="请选择一张图片" Height="50" Width="300" FontSize="40" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF615757"/>
+    <Grid Grid.Row="1" x:Name="ImageGrid" SizeChanged="ImageGrid_SizeChanged" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <PathIcon Margin="70 80 0 0" VerticalAlignment="Center" HorizontalAlignment="Center"
+Foreground="{ThemeResource SystemChromeMediumHighColor}"
+Data="M182.75 219.25C189.499 219.25 195.677 217.539 201.285 214.117L119.445 132.277C116.784 129.616 113.552 128.285 109.75 128.285C105.948 128.285 102.716 129.616 100.055 132.277L18.2148 214.117C20.9714 215.828 23.918 217.111 27.0547 217.967C30.1914 218.822 33.4232 219.25 36.75 219.25H182.75Z M5.38281 201.285L87.2227 119.445C90.2643 116.404 93.6862 114.122 97.4883 112.602C101.385 110.986 105.473 110.178 109.75 110.178C114.027 110.178 118.067 110.986 121.869 112.602C125.766 114.122 129.236 116.404 132.277 119.445L214.117 201.285C215.828 198.529 217.111 195.582 217.967 192.445C218.822 189.309 219.25 186.077 219.25 182.75V36.0371C219.25 31.2845 218.252 26.7695 216.256 22.4922C214.355 18.1198 211.741 14.3177 208.414 11.0859C205.182 7.75911 201.38 5.14518 197.008 3.24414C192.73 1.24805 188.215 0.25 183.463 0.25H36.0371C31.2845 0.25 26.722 1.24805 22.3496 3.24414C18.0723 5.14518 14.2702 7.75911 10.9434 11.0859C7.71159 14.3177 5.09766 18.1198 3.10156 22.4922C1.20052 26.7695 0.25 31.2845 0.25 36.0371V182.75C0.25 186.077 0.677734 189.309 1.5332 192.445C2.38867 195.582 3.67188 198.529 5.38281 201.285ZM155.5 80C164.06 80 171 73.0604 171 64.5C171 55.9396 164.06 49 155.5 49C146.94 49 140 55.9396 140 64.5C140 73.0604 146.94 80 155.5 80Z">
+        <PathIcon.RenderTransform>
+          <CompositeTransform ScaleX="0.6"
+                  ScaleY="0.6" />
+        </PathIcon.RenderTransform>
+      </PathIcon>
+      <TextBlock x:Name="HelpTextBlock" Text=" " Height="50" Width="300" FontSize="40" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF615757"/>
       <Image x:Name="MainImage" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform" PointerMoved="ImageGrid_PointerMoved" PointerWheelChanged="MainImage_PointerWheelChanged">
         <Image.RenderTransform>
           <TransformGroup>
@@ -31,27 +39,31 @@
         </Image.RenderTransformOrigin>
       </Image>
     </Grid>
-    <Grid Grid.Row="2" Background="#33000000">
+    <Grid Grid.Row="2" Background="{ThemeResource SystemControlAcrylicElementBrush}">
 
       <TextBlock x:Name="ZoomTextBlock" Text="缩放级别：100%" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="25"/>
     </Grid>
-    <Grid Grid.Row="0" Background="#33000000">
-
-      <CommandBar  VerticalAlignment="Top" HorizontalAlignment="Center" >
+    <Grid Grid.Row="0" Background="{ThemeResource SystemControlAcrylicElementBrush}">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="128"/>
+      </Grid.ColumnDefinitions>
+      
+      <CommandBar Grid.Column="0" VerticalAlignment="Top" HorizontalAlignment="Left" >
 
         <CommandBar.PrimaryCommands>
           
-          <AppBarButton Icon="AllApps" Width="48" Height="60"/>
+          <AppBarButton Icon="GlobalNavigationButton" Width="48" />
 
-          <AppBarButton Icon="OpenLocal" Width="48" Height="60" Click="OpenButton_Click"/>
+          <AppBarButton Icon="OpenLocal" Width="48" Click="OpenButton_Click"/>
 
-          <AppBarButton Icon="Edit" Width="48" Height="60"/>
+          <AppBarButton Icon="Edit" Width="48" />
 
-          <AppBarButton Icon="Rotate" Width="48" Height="60" Click="RotateButton_Click"/>
+          <AppBarButton Icon="Rotate" Width="48" Click="RotateButton_Click"/>
 
-          <AppBarButton Icon="Delete" Width="48" Height="60" Click="DelButton_Click"/>
+          <AppBarButton Icon="Delete" Width="48" Click="DelButton_Click"/>
 
-          <AppBarButton Icon="Print" Width="48" Height="60"/>
+          <AppBarButton Icon="Print" Width="48" />
 
           <AppBarButton Width="48" Height="60" Click="InfoButton_Click">
             <AppBarButton.Icon>
@@ -59,19 +71,17 @@
             </AppBarButton.Icon>
           </AppBarButton>
 
-          <AppBarButton Width="48" Height="60">
-            <AppBarButton.Icon>
-              <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE712;" FontSize="20"/>
-            </AppBarButton.Icon>
-          </AppBarButton>
-          <AppBarButton Icon="ZoomIn" Width="48" Height="60" Click="ZoomIn_Click"/>
-          <AppBarButton Icon="ZoomOut" Width="48" Height="60" Click="ZoomOut_Click"/>
-          <AppBarButton Icon="FullScreen" Width="48" Height="60"/>
-          <AppBarButton Icon="Setting" Width="48" Height="60"/>
+          
+          <AppBarButton Icon="ZoomIn" Width="48" Click="ZoomIn_Click"/>
+          <AppBarButton Icon="ZoomOut" Width="48" Click="ZoomOut_Click"/>
+          <AppBarButton Icon="FullScreen" Width="48" />
+
         </CommandBar.PrimaryCommands>
         
       </CommandBar>
-
+      <CommandBar Grid.Column="1" Background="Transparent" OverflowButtonVisibility="Collapsed" HorizontalAlignment="Right">
+        <AppBarButton Icon="Setting" Width="48" />
+      </CommandBar>
     </Grid>
   </Grid>
  

@@ -60,7 +60,6 @@
     <ClInclude Include="MainPage.h">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
@@ -101,12 +100,6 @@
     <PackageReference Include="Mile.Xaml">
       <Version>2.2.890</Version>
     </PackageReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\..\..\..\Pictures\Frame 9.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Photo.rc" />
   </ItemGroup>
   <Import Project="..\Mile.Project.Windows\Mile.Project.Cpp.targets" />
 </Project>

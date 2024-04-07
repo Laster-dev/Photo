@@ -1,10 +1,10 @@
 ﻿#include <Windows.h>
-
+#include <opencv2\opencv.hpp>
 #include "pch.h"
 
 #include "App.h"
 #include "MainPage.h"
-
+using namespace cv;
 // 程序的主入口点
 int WINAPI wWinMain(
     _In_ HINSTANCE hInstance,         // 当前实例句柄

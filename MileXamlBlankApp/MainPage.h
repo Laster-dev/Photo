@@ -1,7 +1,32 @@
 ﻿#pragma once
 
 #include "MainPage.g.h"
+#include <opencv2/opencv.hpp>
+#include "winrt/Windows.UI.Xaml.Controls.h"
+#include "winrt/Windows.UI.Xaml.h"
+#include <winrt/Windows.UI.Xaml.Media.Animation.h>
+#include <winrt/Windows.UI.Xaml.Media.Imaging.h>
+#include <winrt/Windows.UI.Xaml.Controls.Primitives.h>
+#include <winrt/Windows.UI.Xaml.Input.h>
 
+#include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.System.h>
+#include <winrt/Windows.Graphics.Imaging.h>
+#include <winrt/Windows.UI.Input.h>
+
+#include <winrt/Windows.Foundation.h>
+#include <fstream>
+#include <iostream>
+#include <Windows.h>
+#include <algorithm>
+
+#include <sstream> 
+using namespace winrt;
+using namespace Windows::UI::Xaml;
+using namespace Windows::UI::Xaml::Controls;
+using namespace winrt::Windows::Foundation;
+using namespace Windows::Graphics::Imaging;
+using namespace Windows::Storage::Streams;
 namespace winrt::MileXamlBlankApp::implementation
 {
     struct MainPage : MainPageT<MainPage>
@@ -9,16 +34,16 @@ namespace winrt::MileXamlBlankApp::implementation
         MainPage() = default;
 
         void InitializeComponent();
-
+        std::vector<uint8_t> myImageData;
         int32_t MyProperty();
         void MyProperty(int32_t value);
 
         void ClickHandler(Windows::Foundation::IInspectable const& sender, Windows::UI::Xaml::RoutedEventArgs const& args);
-        void Page_Loaded(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e);
+        winrt::Windows::Foundation::IAsyncAction Page_Loaded(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e);
         void InfoButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e);
-        void OpenButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e);
+        winrt::Windows::Foundation::IAsyncAction OpenButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e);
         void DelButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e);
-        void RotateButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e);
+        winrt::Windows::Foundation::IAsyncAction RotateButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e);
         void ZoomIn_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e);
     };
 }

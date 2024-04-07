@@ -1,26 +1,12 @@
 ﻿#include "pch.h"
+
+#include "ImageFile.h"
 #include "MainPage.h"
 #include "MainPage.g.cpp"
-#include "winrt/Windows.UI.Xaml.Controls.h"
-#include "winrt/Windows.UI.Xaml.h"
-#include <winrt/Windows.UI.Xaml.Media.Animation.h>
-#include <winrt/Windows.UI.Xaml.Media.Imaging.h>
-#include <winrt/Windows.UI.Xaml.Controls.Primitives.h>
-#include <winrt/Windows.UI.Xaml.Input.h>
-
-#include <winrt/Windows.UI.Input.h> // 确保包括了这个头文件
-#include <winrt/Windows.Foundation.h>
-#include <fstream>
-#include <iostream>
-#include <Windows.h>
-#include <algorithm>
-#include <ImageFile.h>
 
 
-using namespace winrt;
-using namespace Windows::UI::Xaml;
-using namespace Windows::UI::Xaml::Controls;
-using namespace winrt::Windows::Foundation;
+
+
 
 namespace winrt::MileXamlBlankApp::implementation
 {
@@ -45,13 +31,67 @@ namespace winrt::MileXamlBlankApp::implementation
         //Button().Content(box_value(L"Clicked"));
     }
 }
+
 bool fileExists(LPWSTR filename) {
     DWORD attributes = GetFileAttributesW(filename);
     return (attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY));
 }
 
+///在Image显示内存中的图片
+winrt::Windows::Foundation::IAsyncAction DisplayImageFromMemory(std::vector<uint8_t> const& imageData, winrt::Windows::UI::Xaml::Controls::Image imageControl) {
+    try {
+        auto stream = winrt::Windows::Storage::Streams::InMemoryRandomAccessStream();
+        auto writer = winrt::Windows::Storage::Streams::DataWriter(stream.GetOutputStreamAt(0));
+
+        writer.WriteBytes(imageData);
+        co_await writer.StoreAsync();
+        writer.Close();
+        stream.Seek(0);
+
+        auto bitmapImage = winrt::Windows::UI::Xaml::Media::Imaging::BitmapImage();
+        co_await bitmapImage.SetSourceAsync(stream);
+
+        // 获取当前线程的 DispatcherQueue
+        auto dispatcher = winrt::Windows::System::DispatcherQueue::GetForCurrentThread();
+
+        bool isEnqueued = dispatcher.TryEnqueue([imageControl, bitmapImage]() {
+            imageControl.Source(bitmapImage);
+            });
+
+        if (!isEnqueued) {
+            MessageBoxA(0, "if (!isEnqueued)", 0, 0);
+        }
+
+    }
+    catch (const winrt::hresult_error& e) {
+        MessageBoxA(0, "catch (const winrt::hresult_error& e) {", 0, 0);
+    }
+
+}
+
+///cv::Mat到BitmapImage
+winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::UI::Xaml::Media::Imaging::BitmapImage> MatToBitmapImage(cv::Mat const& image) {
+    auto stream = winrt::Windows::Storage::Streams::InMemoryRandomAccessStream();
+
+    // 转换cv::Mat到BGRA格式（适合Windows显示）
+    cv::Mat buffer;
+    cv::cvtColor(image, buffer, cv::COLOR_BGR2BGRA);
+
+    // 写入图像数据到流
+    std::vector<uchar> data(buffer.ptr(), buffer.ptr() + buffer.total() * buffer.elemSize());
+    auto writer = winrt::Windows::Storage::Streams::DataWriter(stream.GetOutputStreamAt(0));
+    writer.WriteBytes(data);
+    co_await writer.StoreAsync();
+    co_await writer.FlushAsync();
+    writer.Close();
+
+    // 使用流创建BitmapImage
+    auto bitmapImage = winrt::Windows::UI::Xaml::Media::Imaging::BitmapImage();
+    co_await bitmapImage.SetSourceAsync(stream);
+    co_return bitmapImage;
+}
 ///窗口加载
-void winrt::MileXamlBlankApp::implementation::MainPage::Page_Loaded(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e)
+winrt::Windows::Foundation::IAsyncAction winrt::MileXamlBlankApp::implementation::MainPage::Page_Loaded(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e)
 {
     LPWSTR* argv;
     int argc;
@@ -66,10 +106,17 @@ void winrt::MileXamlBlankApp::implementation::MainPage::Page_Loaded(winrt::Windo
     }
     if (Filepath != NULL) {
         winrt::hstring path(Filepath);
-        winrt::Windows::UI::Xaml::Media::Imaging::BitmapImage bitmapImage;
-        bitmapImage.UriSource(winrt::Windows::Foundation::Uri(path));
-
-        MainImage().Source(bitmapImage);
+        // 打开文件
+        std::ifstream file(Filepath, std::ios::binary);
+        // 检查文件是否成功打开
+        if (!file.is_open()) {
+            MessageBoxA(0,0,"Failed to open file.",0);
+        }
+        // 读取文件到 std::vector<uint8_t>
+        myImageData = std::vector<uint8_t>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+        // 关闭文件
+        file.close();
+        co_await DisplayImageFromMemory(myImageData, MainImage());
     }
 }
 ///获取Image控件URL
@@ -85,62 +132,88 @@ std::wstring GetMainImageSourceUri(const winrt::Windows::UI::Xaml::Controls::Ima
     return std::wstring();
 }
 
-///显示文件信息
-winrt::fire_and_forget ShowImageInfoDialog(const ImageInfo& imgInfo, const UIElement& owner) {
-    std::wstring message = L"文件名: " + imgInfo.GetFileName() +
-        L"\n文件大小: " + std::to_wstring(imgInfo.GetFileSize()) + L" bytes" +
-        L"\n宽度: " + std::to_wstring(imgInfo.GetWidth()) +
-        L", 高度: " + std::to_wstring(imgInfo.GetHeight());
-
-
-    TextBlock textBlock;
-    textBlock.Text(message);
-    textBlock.TextWrapping(TextWrapping::Wrap);
-
-
-    ContentDialog contentDialog;
-    contentDialog.Title(box_value(L"图片信息"));
-    contentDialog.Content(textBlock);
-    contentDialog.CloseButtonText(L"关闭");
-
-
-    if (auto control = owner.try_as<Controls::Control>()) {
-        contentDialog.XamlRoot(control.XamlRoot());
+///文件大小计算
+std::wstring FormatFileSize(size_t bytes) {
+    const size_t conversion = 1024;
+    std::wstringstream ss;
+    if (bytes < conversion) {
+        ss << bytes << L" B";
     }
-
-
-    co_await contentDialog.ShowAsync();
+    else if (bytes < conversion * conversion) {
+        ss << std::fixed << std::setprecision(2) << static_cast<double>(bytes) / conversion << L" KB";
+    }
+    else if (bytes < conversion * conversion * conversion) {
+        ss << std::fixed << std::setprecision(2) << static_cast<double>(bytes) / (conversion * conversion) << L" MB";
+    }
+    else {
+        ss << std::fixed << std::setprecision(2) << static_cast<double>(bytes) / (conversion * conversion * conversion) << L" GB";
+    }
+    return ss.str();
 }
+///获取图片信息
+std::wstring GetImageInfo(const std::vector<uint8_t>& imageData) {
+    // 将图片数据从 std::vector 转换为 cv::Mat
+    cv::Mat image = cv::imdecode(cv::Mat(imageData), cv::IMREAD_UNCHANGED);
 
+    // 获取图片信息
+    std::wstring info = L"图片信息：\n";
+    info += L"宽度: " + std::to_wstring(image.cols) + L" 像素\n";
+    info += L"高度: " + std::to_wstring(image.rows) + L" 像素\n";
+    info += L"通道数: " + std::to_wstring(image.channels()) + L"\n";
+
+    // 深度信息
+    std::wstring depthInfo;
+    switch (image.depth()) {
+    case CV_8U: depthInfo = L"8 位无符号"; break;
+    case CV_8S: depthInfo = L"8 位有符号"; break;
+    case CV_16U: depthInfo = L"16 位无符号"; break;
+    case CV_16S: depthInfo = L"16 位有符号"; break;
+    case CV_32S: depthInfo = L"32 位整型"; break;
+    case CV_32F: depthInfo = L"32 位浮点"; break;
+    case CV_64F: depthInfo = L"64 位浮点"; break;
+    default: depthInfo = L"未知"; break;
+    }
+    info += L"深度: " + depthInfo + L"\n";
+
+    // 图片类型
+    std::wstring typeInfo;
+    if (image.type() == CV_8UC1) typeInfo = L"灰度图";
+    else if (image.type() == CV_8UC3) typeInfo = L"彩色图";
+    else typeInfo = L"其他类型";
+    info += L"类型: " + typeInfo + L"\n";
+
+    // 文件大小
+    info += L"文件大小: " + FormatFileSize(imageData.size()) + L"\n";
+
+    return info;
+}
 ///文件信息
 void winrt::MileXamlBlankApp::implementation::MainPage::InfoButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e)
 {
 
-    std::wstring filename = GetMainImageSourceUri(MainImage());
+    auto imageInfo = GetImageInfo(myImageData);
+    // 创建 TextBlock 显示图片信息
+    TextBlock textBlock{};
+    textBlock.Text(imageInfo);
+    textBlock.TextWrapping(TextWrapping::Wrap);
 
-    // 检查是否以"file:///"开头
-    if (filename.substr(0, 8) == L"file:///") {
-        // 移除"file:///"，并替换所有的"/"为"\\"
-        filename = filename.substr(8);
-        std::replace(filename.begin(), filename.end(), L'/', L'\\');
-    }
-
-    ImageInfo imgInfo(filename);
-    auto control = this->try_as<Windows::UI::Xaml::Controls::Control>();
-
-    ShowImageInfoDialog(imgInfo, *this); // 传递this指针作为显示的窗口
+    // 创建 ContentDialog 并设置内容
+    ContentDialog dialog{};
+    dialog.Content(textBlock);
+    dialog.CloseButtonText(L"Close");
+    dialog.XamlRoot(this->XamlRoot());
+    dialog.ShowAsync();
 }
 
 ///打开文件
-void winrt::MileXamlBlankApp::implementation::MainPage::OpenButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e)
+winrt::Windows::Foundation::IAsyncAction winrt::MileXamlBlankApp::implementation::MainPage::OpenButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e)
 {
     OPENFILENAMEW ofn; // 使用宽字符版本的结构体
     WCHAR szFile[260]; // 使用WCHAR类型定义文件路径数组
 
-    // 初始化OPENFILENAMEW结构体
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = NULL; // 如果你有窗口句柄，请替换NULL
+    ofn.hwndOwner = NULL;
     ofn.lpstrFile = szFile;
     ofn.lpstrFile[0] = L'\0';
     ofn.nMaxFile = sizeof(szFile) / sizeof(WCHAR);
@@ -153,29 +226,16 @@ void winrt::MileXamlBlankApp::implementation::MainPage::OpenButton_Click(winrt::
 
     if (GetOpenFileName(&ofn) == TRUE) {
         if (szFile != NULL) {
-            winrt::hstring path(szFile);
-            winrt::Windows::UI::Xaml::Media::Imaging::BitmapImage bitmapImage;
-            bitmapImage.UriSource(winrt::Windows::Foundation::Uri(path));
-
-            auto imageControl = this->FindName(L"MainImage").as<winrt::Windows::UI::Xaml::Controls::Image>();
-
-            auto currentTransform = imageControl.RenderTransform().as<winrt::Windows::UI::Xaml::Media::RotateTransform>();
-
-            double currentAngle = 0;
-            if (currentTransform) {
-                currentAngle = currentTransform.Angle();
+            std::ifstream file(szFile, std::ios::binary);
+            // 检查文件是否成功打开
+            if (!file.is_open()) {
+                MessageBoxA(0, 0, "Failed to open file.", 0);
+                co_return;
             }
-
-            double newAngle = 0;
-
-            auto rotateTransform = winrt::Windows::UI::Xaml::Media::RotateTransform();
-            rotateTransform.Angle(newAngle);
-
-            rotateTransform.CenterX(imageControl.ActualWidth() / 2);
-            rotateTransform.CenterY(imageControl.ActualHeight() / 2);
-
-            imageControl.RenderTransform(rotateTransform);
-            MainImage().Source(bitmapImage);
+            myImageData = std::vector<uint8_t>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+            file.close();
+            // 异步显示图像，避免使用.get()
+            co_await DisplayImageFromMemory(myImageData, MainImage());
         }
     }
 }
@@ -236,37 +296,40 @@ void winrt::MileXamlBlankApp::implementation::MainPage::DelButton_Click(winrt::W
         });
 }
 
+///旋转图片
+std::vector<uint8_t> RotateEncodedImage(const std::vector<uint8_t>& encodedImage, int angle) {
+    // 步骤 1: 从内存中解码图像数据
+    cv::Mat image = cv::imdecode(cv::Mat(encodedImage), cv::IMREAD_COLOR);
 
-
-void winrt::MileXamlBlankApp::implementation::MainPage::RotateButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e)
-{
-    auto imageControl = this->FindName(L"MainImage").as<winrt::Windows::UI::Xaml::Controls::Image>();
-
-    auto currentTransform = imageControl.RenderTransform().as<winrt::Windows::UI::Xaml::Media::RotateTransform>();
-
-    double currentAngle = 0;
-    if (currentTransform) {
-        currentAngle = currentTransform.Angle();
+    // 步骤 2: 旋转图像
+    cv::Mat rotatedImage;
+    switch (angle % 360) {
+    case 90:
+        cv::rotate(image, rotatedImage, cv::ROTATE_90_CLOCKWISE);
+        break;
+    case 180:
+        cv::rotate(image, rotatedImage, cv::ROTATE_180);
+        break;
+    case 270:
+        cv::rotate(image, rotatedImage, cv::ROTATE_90_COUNTERCLOCKWISE);
+        break;
+    default:
+        // 如果提供了非90、180、270度的角度，直接返回原图像数据
+        return encodedImage;
     }
 
-    double newAngle = std::fmod(currentAngle + 90, 360); // 确保角度值在0到359之间
+    // 步骤 3: 将旋转后的图像重新编码
+    std::vector<uint8_t> rotatedEncodedImage;
+    cv::imencode(".jpg", rotatedImage, rotatedEncodedImage);
 
-    auto rotateTransform = winrt::Windows::UI::Xaml::Media::RotateTransform();
-    rotateTransform.Angle(newAngle);
-
-    // 设置旋转中心为图片中心
-    rotateTransform.CenterX(imageControl.ActualWidth() / 2);
-    rotateTransform.CenterY(imageControl.ActualHeight() / 2);
-
-    imageControl.RenderTransform(rotateTransform);
-
+    return rotatedEncodedImage;
 }
-
-
-
-
-
-
+///旋转按钮
+winrt::Windows::Foundation::IAsyncAction winrt::MileXamlBlankApp::implementation::MainPage::RotateButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e)
+{
+    myImageData = RotateEncodedImage(myImageData, 90);
+    co_await DisplayImageFromMemory(myImageData, MainImage());
+}
 
 void winrt::MileXamlBlankApp::implementation::MainPage::ZoomIn_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e)
 {

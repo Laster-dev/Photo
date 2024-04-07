@@ -16,7 +16,6 @@
     <ClInclude Include="ImageFile.h">
       <Filter>Helper\ImageFile</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="PropertySheet.props" />
@@ -34,13 +33,5 @@
     <Filter Include="Res">
       <UniqueIdentifier>{ae01344f-f184-4d11-bc4a-d238d3f3169c}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\..\..\..\Pictures\Frame 9.ico">
-      <Filter>Res</Filter>
-    </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Photo.rc" />
   </ItemGroup>
 </Project>

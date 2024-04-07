@@ -32,13 +32,9 @@ namespace winrt::MileXamlBlankApp::implementation
     }
 }
 
-bool fileExists(LPWSTR filename) {
-    DWORD attributes = GetFileAttributesW(filename);
-    return (attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY));
-}
 
 ///在Image显示内存中的图片
-winrt::Windows::Foundation::IAsyncAction DisplayImageFromMemory(std::vector<uint8_t> const& imageData, winrt::Windows::UI::Xaml::Controls::Image imageControl) {
+winrt::Windows::Foundation::IAsyncAction winrt::MileXamlBlankApp::implementation::MainPage::DisplayImageFromMemory(std::vector<uint8_t> const& imageData, winrt::Windows::UI::Xaml::Controls::Image imageControl) {
     try {
         auto stream = winrt::Windows::Storage::Streams::InMemoryRandomAccessStream();
         auto writer = winrt::Windows::Storage::Streams::DataWriter(stream.GetOutputStreamAt(0));
@@ -49,24 +45,50 @@ winrt::Windows::Foundation::IAsyncAction DisplayImageFromMemory(std::vector<uint
         stream.Seek(0);
 
         auto bitmapImage = winrt::Windows::UI::Xaml::Media::Imaging::BitmapImage();
+
+
+        bitmapImage.ImageOpened([imageControl, &bitmapImage, this](auto&&, winrt::Windows::UI::Xaml::RoutedEventArgs const&) {
+            // 在图片加载完毕后设置 Image 控件的宽度和高度
+            auto dispatcher = winrt::Windows::System::DispatcherQueue::GetForCurrentThread();
+            dispatcher.TryEnqueue([imageControl, &bitmapImage, this]() {
+                // 假设 this->ImageGrid 是包含 Image 控件的 Grid
+                auto gridWidth = this->ImageGrid().ActualWidth();
+                auto gridHeight = this->ImageGrid().ActualHeight();
+
+                HelpTextBlock().Visibility(Windows::UI::Xaml::Visibility::Collapsed);//隐藏提示
+
+                // 计算应当设置的宽度和高度，以适应 Grid 的大小
+                double setImageWidth, setImageHeight;
+                if (bitmapImage.PixelWidth() > gridWidth || bitmapImage.PixelHeight() > gridHeight) {
+                    // 图片尺寸大于 Grid，调整图片大小以适应 Grid
+                    setImageWidth = gridWidth;
+                    setImageHeight = gridHeight;
+                }
+                else {
+                    // 图片尺寸小于或等于 Grid，使用原始图片尺寸
+                    setImageWidth = bitmapImage.PixelWidth();
+                    setImageHeight = bitmapImage.PixelHeight();
+                }
+
+                // 设置 Image 控件的宽度和高度
+                imageControl.Width(setImageWidth);
+                imageControl.Height(setImageHeight);
+                });
+            });
+
+
         co_await bitmapImage.SetSourceAsync(stream);
 
-        // 获取当前线程的 DispatcherQueue
+        // 获取当前线程的 DispatcherQueue，以确保UI操作在UI线程上执行
         auto dispatcher = winrt::Windows::System::DispatcherQueue::GetForCurrentThread();
 
         bool isEnqueued = dispatcher.TryEnqueue([imageControl, bitmapImage]() {
             imageControl.Source(bitmapImage);
             });
-
-        if (!isEnqueued) {
-            MessageBoxA(0, "if (!isEnqueued)", 0, 0);
-        }
-
     }
     catch (const winrt::hresult_error& e) {
-        MessageBoxA(0, "catch (const winrt::hresult_error& e) {", 0, 0);
+        //MessageBoxA(0, "Failed to display image from memory.", 0, 0);
     }
-
 }
 
 ///cv::Mat到BitmapImage
@@ -99,24 +121,48 @@ winrt::Windows::Foundation::IAsyncAction winrt::MileXamlBlankApp::implementation
     LPWSTR commandLine = GetCommandLineW();
     argv = CommandLineToArgvW(commandLine, &argc);
     if (nullptr != argv && argc > 1) {
-        if (fileExists(argv[1])) {
+        if (fs::exists(argv[1])) { // 使用 std::filesystem::exists 来检查文件是否存在
             Filepath = argv[1];
         }
         LocalFree(argv);
     }
+
     if (Filepath != NULL) {
-        winrt::hstring path(Filepath);
-        // 打开文件
-        std::ifstream file(Filepath, std::ios::binary);
-        // 检查文件是否成功打开
-        if (!file.is_open()) {
-            MessageBoxA(0,0,"Failed to open file.",0);
+        // 转换 LPWSTR 到 std::filesystem::path
+        fs::path filepath(Filepath);
+
+        // 首先检查路径是否存在
+        if (!fs::exists(filepath)) {
+            MessageBoxA(0, "The path does not exist.", 0, 0);
+            //return; // 提前返回，因为没有要处理的文件
         }
-        // 读取文件到 std::vector<uint8_t>
-        myImageData = std::vector<uint8_t>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
-        // 关闭文件
-        file.close();
-        co_await DisplayImageFromMemory(myImageData, MainImage());
+
+        // 检查给定路径是文件夹还是文件
+        if (fs::is_directory(filepath)) {
+            MessageBoxA(0, "The path is a directory, not a file.", 0, 0);
+           // return; // 提前返回，因为给定路径是一个目录
+        }
+        else if (!fs::is_regular_file(filepath)) {
+            MessageBoxA(0, "The path is not a regular file.", 0, 0);
+            //return; // 提前返回，因为给定路径不是一个正常的文件
+        }
+
+        // 使用 std::ifstream 打开文件
+        std::ifstream file(filepath, std::ios::binary);
+
+        if (!file.is_open()) {
+            MessageBoxA(0, "Failed to open file.", 0, 0);
+            // 转换 std::filesystem::path 到 std::wstring，然后再到 LPWSTR，以便使用 MessageBoxW
+            std::wstring filepath_wstr = filepath.wstring();
+            MessageBoxW(0, filepath_wstr.c_str(), 0, 0);
+        }
+        else {
+            // 文件成功打开，读取文件到 std::vector<uint8_t>
+            myImageData = std::vector<uint8_t>((std::istreambuf_iterator<char>(file)),
+                std::istreambuf_iterator<char>());
+            file.close();
+            co_await DisplayImageFromMemory(myImageData, MainImage());
+        }
     }
 }
 ///获取Image控件URL
@@ -217,7 +263,7 @@ winrt::Windows::Foundation::IAsyncAction winrt::MileXamlBlankApp::implementation
     ofn.lpstrFile = szFile;
     ofn.lpstrFile[0] = L'\0';
     ofn.nMaxFile = sizeof(szFile) / sizeof(WCHAR);
-    ofn.lpstrFilter = L"所有图片文件\0*.bmp;*.jpg;*.jpeg;*.png;*.tif;*.gif;*.pcx;*.tga;*.exif;*.fpx;*.svg;*.psd;*.cdr;*.pcd;*.dxf;*.ufo;*.eps;*.ai;*.raw;*.wmf;*.webp;*.avif;*.apng\0";
+    ofn.lpstrFilter = L"所有图片文件\0*.bmp;*.jpg;*.jpeg;*.ico;*.icon;*.png;*.tif;*.gif;*.pcx;*.tga;*.exif;*.fpx;*.svg;*.psd;*.cdr;*.pcd;*.dxf;*.ufo;*.eps;*.ai;*.raw;*.wmf;*.webp;*.avif;*.apng\0";
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;
@@ -235,6 +281,10 @@ winrt::Windows::Foundation::IAsyncAction winrt::MileXamlBlankApp::implementation
             myImageData = std::vector<uint8_t>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
             file.close();
             // 异步显示图像，避免使用.get()
+            ImageTranslateTransform().X(0);
+            ImageTranslateTransform().Y(0);
+            ImageScaleTransform().ScaleX(1);
+            ImageScaleTransform().ScaleY(1);
             co_await DisplayImageFromMemory(myImageData, MainImage());
         }
     }
@@ -331,13 +381,100 @@ winrt::Windows::Foundation::IAsyncAction winrt::MileXamlBlankApp::implementation
     co_await DisplayImageFromMemory(myImageData, MainImage());
 }
 
+///放大
 void winrt::MileXamlBlankApp::implementation::MainPage::ZoomIn_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e)
 {
-    // 获取ScaleTransform对象并设置放大倍数
-    //winrt::Windows::UI::Xaml::Media::CompositeTransform transformnew;
-    //auto transform = ImageTransform().as<winrt::Windows::UI::Xaml::Media::CompositeTransform>();
-    //transformnew.ScaleX(transform.ScaleX() * 1.1);
-    //transformnew.ScaleY(transform.ScaleY() * 1.1);
-    // 将ScaleTransform应用到图像控件
-    //MainImage().RenderTransform(transform);
+    auto scaleFactor = 1.1;
+    // 更新缩放级别
+    auto newScaleX = ImageScaleTransform().ScaleX() * scaleFactor;
+    auto newScaleY = ImageScaleTransform().ScaleY() * scaleFactor;
+
+    // 限制缩放级别，防止无限放大或缩小到看不见
+    newScaleX = std::max(0.1, std::min(newScaleX, 10.0));
+    newScaleY = std::max(0.1, std::min(newScaleY, 10.0));
+
+    ImageScaleTransform().ScaleX(newScaleX);
+    ImageScaleTransform().ScaleY(newScaleY);
+
 }
+void winrt::MileXamlBlankApp::implementation::MainPage::ZoomOut_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::RoutedEventArgs const& e)
+{
+    auto scaleFactor =0.9;
+    // 更新缩放级别
+    auto newScaleX = ImageScaleTransform().ScaleX() * scaleFactor;
+    auto newScaleY = ImageScaleTransform().ScaleY() * scaleFactor;
+
+    // 限制缩放级别，防止无限放大或缩小到看不见
+    newScaleX = std::max(0.1, std::min(newScaleX, 10.0));
+    newScaleY = std::max(0.1, std::min(newScaleY, 10.0));
+
+    ImageScaleTransform().ScaleX(newScaleX);
+    ImageScaleTransform().ScaleY(newScaleY);
+}
+///窗口大小改变
+winrt::Windows::Foundation::IAsyncAction winrt::MileXamlBlankApp::implementation::MainPage::ImageGrid_SizeChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::SizeChangedEventArgs const& e)
+{
+    co_await DisplayImageFromMemory(myImageData, MainImage());
+}
+
+///滚轮缩放
+void winrt::MileXamlBlankApp::implementation::MainPage::MainImage_PointerWheelChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::Input::PointerRoutedEventArgs const& e)
+{
+    auto delta = e.GetCurrentPoint(nullptr).Properties().MouseWheelDelta();
+    double scaleFactor = delta > 0 ? 1.2 : 0.8; // 向上滚动放大，向下滚动缩小
+
+    // 更新缩放级别
+    auto newScaleX = ImageScaleTransform().ScaleX() * scaleFactor;
+    auto newScaleY = ImageScaleTransform().ScaleY() * scaleFactor;
+
+    // 限制缩放级别，防止无限放大或缩小到看不见
+    newScaleX = std::max(0.1, std::min(newScaleX, 10.0));
+    newScaleY = std::max(0.1, std::min(newScaleY, 10.0));
+
+    ImageScaleTransform().ScaleX(newScaleX);
+    ImageScaleTransform().ScaleY(newScaleY);
+
+    e.Handled(true);
+}
+
+POINT cursorPosold;
+POINT cursorPosonew;
+void winrt::MileXamlBlankApp::implementation::MainPage::ImageGrid_PointerMoved(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::UI::Xaml::Input::PointerRoutedEventArgs const& e)
+{
+    auto pointer = e.Pointer();
+    if (pointer.PointerDeviceType() == Windows::Devices::Input::PointerDeviceType::Mouse)
+    {
+        auto properties = e.GetCurrentPoint(nullptr).Properties();
+        if (properties.IsLeftButtonPressed())
+        {
+            auto currentPoint = e.GetCurrentPoint(sender.as<winrt::Windows::UI::Xaml::UIElement>()).Position();
+
+            // 首次移动时，记录初始位置
+            if (cursorPosold.x == 0 && cursorPosold.y == 0)
+            {
+                GetCursorPos(&cursorPosold);//初始化记录点
+                return; // 直到下一次移动事件再开始处理
+            }
+            GetCursorPos(&cursorPosonew);//获取鼠标位置
+            // 计算自上次以来的移动距离
+            int Xmove = cursorPosonew.x - cursorPosold.x;
+            int Ymove = cursorPosonew.y - cursorPosold.y;
+
+            double IX = ImageTranslateTransform().X();
+            double IY = ImageTranslateTransform().Y();
+            // 更新图像的位置
+            ImageTranslateTransform().X(IX + Xmove);
+            ImageTranslateTransform().Y(IY+Ymove);
+            GetCursorPos(&cursorPosold);//更新记录点
+        }
+        else
+        {
+
+            cursorPosold.x = 0;
+            cursorPosold.y = 0;
+        }
+    }
+}
+
+
+

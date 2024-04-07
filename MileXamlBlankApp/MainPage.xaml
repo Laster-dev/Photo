@@ -14,13 +14,23 @@
     </Grid.RowDefinitions>
 
 
-    <Grid Grid.Row="1">
-      <TextBlock Text="请选择一张图片" Height="50" Width="300" FontSize="40" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF615757"/>
-      <Image x:Name="MainImage" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform">
+    <Grid Grid.Row="1" x:Name="ImageGrid" SizeChanged="ImageGrid_SizeChanged" >
+      <TextBlock x:Name="HelpTextBlock" Text="请选择一张图片" Height="50" Width="300" FontSize="40" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF615757"/>
+      <Image x:Name="MainImage" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform" PointerMoved="ImageGrid_PointerMoved" PointerWheelChanged="MainImage_PointerWheelChanged">
         <Image.RenderTransform>
-          <RotateTransform x:Name="ImageTransform" />
+          <TransformGroup>
+            <ScaleTransform x:Name="ImageScaleTransform"/>
+            <RotateTransform x:Name="ImageRotateTransform"/>
+            <TranslateTransform x:Name="ImageTranslateTransform"/>
+          </TransformGroup>
         </Image.RenderTransform>
+        <!-- 修改此处的设置方式 -->
+        <Image.RenderTransformOrigin>
+          0.5,0.5
+        </Image.RenderTransformOrigin>
       </Image>
+
+
     </Grid>
 
     <Grid Grid.Row="0">
@@ -52,7 +62,7 @@
             </AppBarButton.Icon>
           </AppBarButton>
           <AppBarButton Icon="ZoomIn" Width="48" Height="60" Click="ZoomIn_Click"/>
-          <AppBarButton Icon="ZoomOut" Width="48" Height="60"/>
+          <AppBarButton Icon="ZoomOut" Width="48" Height="60" Click="ZoomOut_Click"/>
           <AppBarButton Icon="FullScreen" Width="48" Height="60"/>
           <AppBarButton Icon="Setting" Width="48" Height="60"/>
         </CommandBar.PrimaryCommands>

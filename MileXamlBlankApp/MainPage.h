@@ -12,6 +12,7 @@
 #include <winrt/Windows.Graphics.Imaging.h>
 #include <winrt/Windows.UI.Input.h>
 #include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.UI.Core.h>
 #include <fstream>
 #include <iostream>
 #include <Windows.h>
@@ -25,6 +26,7 @@ using namespace Windows::UI::Xaml::Controls;
 using namespace winrt::Windows::Foundation;
 using namespace Windows::Graphics::Imaging;
 using namespace Windows::Storage::Streams;
+using namespace Windows::UI::ViewManagement;
 namespace fs = std::filesystem;
 namespace winrt::MileXamlBlankApp::implementation
 {
@@ -58,3 +60,5 @@ namespace winrt::MileXamlBlankApp::factory_implementation
     {
     };
 }
+
+
